@@ -125,11 +125,11 @@ class AITicketClassifierPluginConfig extends PluginConfig {
 
         $fields['error_handling'] = new ChoiceField(array(
             'label' => __('On API Error'),
-            'required' => true,
+            'required' => false,
             'default' => 'log',
             'choices' => array(
-                'silent' => __('Silent skip (no action)'),
                 'log' => __('Log error only'),
+                'silent' => __('Silent skip (no action)'),
                 'both' => __('Log error and skip'),
             ),
             'hint' => __('What to do when the AI API returns an error.'),
