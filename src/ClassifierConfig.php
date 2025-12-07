@@ -103,20 +103,18 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             )
         ));
 
-        // Custom fields multi-select
+        // Custom fields - show available fields and let user enter names
         $customFieldChoices = $this->getCustomFieldChoices();
+        $hint = __('Enter field names separated by commas. Only text, memo, choice, and boolean fields are supported.');
         if (!empty($customFieldChoices)) {
-            $fields['custom_fields'] = new ChoiceField(array(
-                'label' => __('AI-Managed Custom Fields'),
-                'required' => false,
-                'choices' => $customFieldChoices,
-                'configuration' => array(
-                    'multiselect' => true,
-                    'prompt' => __('Select fields for AI to fill...'),
-                ),
-                'hint' => __('Select which custom form fields the AI should fill. Only text, memo, choice, and boolean fields are supported.'),
-            ));
+            $hint .= "\n" . __('Available fields: ') . implode(', ', array_keys($customFieldChoices));
         }
+        $fields['custom_fields'] = new TextboxField(array(
+            'label' => __('AI-Managed Custom Fields'),
+            'required' => false,
+            'hint' => $hint,
+            'configuration' => array('size' => 80, 'length' => 500),
+        ));
 
         // --- Error Handling ---
         $fields['section_errors'] = new SectionBreakField(array(

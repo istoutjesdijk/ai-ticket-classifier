@@ -218,6 +218,16 @@ class AITicketClassifierPlugin extends Plugin {
             return;
         }
 
+        // Skip if this is the first message (ticket just created)
+        // to avoid double classification with onTicketCreated
+        $thread = $entry->getThread();
+        if ($thread) {
+            $entries = $thread->getEntries();
+            if ($entries && $entries->count() <= 1) {
+                return;
+            }
+        }
+
         $this->debugLog("=== onThreadEntryCreated triggered ===", $cfg);
 
         try {
