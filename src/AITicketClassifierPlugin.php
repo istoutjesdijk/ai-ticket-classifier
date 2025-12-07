@@ -258,8 +258,9 @@ class AITicketClassifierPlugin extends Plugin {
         $apiKey = $cfg->get('api_key');
         $model = $cfg->get('model') ?: 'gpt-4o-mini';
         $timeout = (int) ($cfg->get('timeout') ?: 30);
+        $temperature = (float) ($cfg->get('temperature') ?: 1.0);
 
-        $this->debugLog("Provider: {$provider}, Model: {$model}, Timeout: {$timeout}s", $cfg);
+        $this->debugLog("Provider: {$provider}, Model: {$model}, Timeout: {$timeout}s, Temperature: {$temperature}", $cfg);
 
         if (!$apiKey) {
             throw new Exception('API key not configured');
@@ -283,7 +284,7 @@ class AITicketClassifierPlugin extends Plugin {
 
         // Create AI client and classify
         $this->debugLog("Calling AI API...", $cfg);
-        $client = new AIClassifierClient($provider, $apiKey, $model, $timeout);
+        $client = new AIClassifierClient($provider, $apiKey, $model, $timeout, $temperature);
         $result = $client->classify($content, $topics, $priorities, $customFields);
         $this->debugLog("AI response: topic_id={$result['topic_id']}, priority_id={$result['priority_id']}, custom_fields=" . count($result['custom_fields']), $cfg);
 

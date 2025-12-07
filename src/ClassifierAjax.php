@@ -79,6 +79,7 @@ class ClassifierAjaxController extends AjaxController {
             $apiKey = $cfg->get('api_key');
             $model = $cfg->get('model') ?: 'gpt-4o-mini';
             $timeout = (int) ($cfg->get('timeout') ?: 30);
+            $temperature = (float) ($cfg->get('temperature') ?: 1.0);
 
             if (!$apiKey) {
                 Http::response(500, $this->encode(array('ok' => false, 'error' => __('API key not configured'))));
@@ -94,7 +95,7 @@ class ClassifierAjaxController extends AjaxController {
 
             // Call AI
             require_once(__DIR__ . '/AIClient.php');
-            $client = new AIClassifierClient($provider, $apiKey, $model, $timeout);
+            $client = new AIClassifierClient($provider, $apiKey, $model, $timeout, $temperature);
             $result = $client->classify($content, $topics, $priorities, $customFields);
 
             // Apply results

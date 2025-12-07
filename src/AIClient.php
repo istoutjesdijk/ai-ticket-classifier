@@ -12,6 +12,7 @@ class AIClassifierClient {
     private $apiKey;
     private $model;
     private $timeout;
+    private $temperature;
 
     // API endpoints
     const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
@@ -25,12 +26,14 @@ class AIClassifierClient {
      * @param string $apiKey API key for authentication
      * @param string $model Model name to use
      * @param int $timeout Request timeout in seconds
+     * @param float $temperature Temperature for response randomness (0-2)
      */
-    function __construct($provider, $apiKey, $model, $timeout = 30) {
+    function __construct($provider, $apiKey, $model, $timeout = 30, $temperature = 1.0) {
         $this->provider = strtolower($provider);
         $this->apiKey = $apiKey;
         $this->model = $model;
         $this->timeout = (int) $timeout;
+        $this->temperature = (float) $temperature;
     }
 
     /**
@@ -164,7 +167,7 @@ class AIClassifierClient {
         // Temperature is not supported by gpt-5 and o-series models
         $noTemperatureModels = preg_match('/^(gpt-5|o1|o3)/i', $this->model);
         if (!$noTemperatureModels) {
-            $payload['temperature'] = 0.1; // Low temperature for consistent classification
+            $payload['temperature'] = $this->temperature;
         }
 
         // Determine which token parameter to use

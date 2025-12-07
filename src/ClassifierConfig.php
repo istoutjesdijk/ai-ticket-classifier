@@ -157,6 +157,14 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             ),
         ));
 
+        $fields['temperature'] = new TextboxField(array(
+            'label' => __('Temperature'),
+            'required' => false,
+            'default' => '1',
+            'hint' => __('Controls randomness (0-2). Lower = more consistent. Note: gpt-5 and o-series models only support temperature 1.'),
+            'configuration' => array('size' => 10, 'length' => 10),
+        ));
+
         $fields['timeout'] = new TextboxField(array(
             'label' => __('API Timeout (seconds)'),
             'required' => false,
