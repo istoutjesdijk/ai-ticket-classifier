@@ -103,18 +103,24 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             )
         ));
 
-        // Custom fields - simple text input
-        $fields['custom_fields'] = new TextareaField(array(
-            'label' => __('AI-Managed Custom Fields'),
-            'required' => false,
-            'default' => '',
-            'hint' => __('Enter field names separated by commas (e.g., "product_type, urgency_reason"). Only text, memo, choice, and boolean fields are supported. Find field names in Admin → Manage → Forms.'),
-            'configuration' => array(
-                'rows' => 2,
-                'cols' => 60,
-                'html' => false,
-            ),
-        ));
+        // Custom fields - checkboxes for each available field
+        $customFieldChoices = $this->getCustomFieldChoices();
+        if (!empty($customFieldChoices)) {
+            $fields['section_custom_fields'] = new SectionBreakField(array(
+                'label' => __('AI-Managed Custom Fields'),
+                'hint' => __('Select which custom form fields the AI should fill.'),
+            ));
+
+            foreach ($customFieldChoices as $fieldName => $fieldLabel) {
+                $fields['cf_' . $fieldName] = new BooleanField(array(
+                    'label' => $fieldLabel,
+                    'default' => false,
+                    'configuration' => array(
+                        'desc' => sprintf(__('Let AI fill "%s"'), $fieldLabel)
+                    )
+                ));
+            }
+        }
 
         // --- Error Handling ---
         $fields['section_errors'] = new SectionBreakField(array(

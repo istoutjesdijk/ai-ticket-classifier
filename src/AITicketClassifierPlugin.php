@@ -285,11 +285,12 @@ class AITicketClassifierPlugin extends Plugin {
         $priorities = $this->getAvailablePriorities();
         $this->debugLog("Available priorities: " . count($priorities) . " - " . implode(', ', $priorities), $cfg);
 
-        // Get custom fields to fill
+        // Get custom fields to fill (from cf_* checkboxes)
         $customFields = array();
-        if ($cfg->get('custom_fields')) {
-            $customFields = $this->getCustomFieldDefinitions($ticket, $cfg->get('custom_fields'));
-            $this->debugLog("Custom fields to fill: " . count($customFields), $cfg);
+        $selectedFields = $this->getSelectedCustomFields($cfg);
+        if (!empty($selectedFields)) {
+            $customFields = $this->getCustomFieldDefinitions($ticket, $selectedFields);
+            $this->debugLog("Custom fields to fill: " . count($customFields) . " - " . implode(', ', $selectedFields), $cfg);
         }
 
         // Create AI client and classify
@@ -346,6 +347,48 @@ class AITicketClassifierPlugin extends Plugin {
         if ($updated) {
             $ticket->save();
         }
+    }
+
+    /**
+     * Get selected custom fields from config checkboxes
+     *
+     * @param PluginConfig $cfg Plugin configuration
+     * @return array Array of selected field names
+     */
+    private function getSelectedCustomFields($cfg) {
+        $selected = array();
+
+        // Get available field names from ticket form
+        $supportedTypes = array('text', 'memo', 'choices', 'bool');
+
+        try {
+            $ticketForm = TicketForm::getInstance();
+            if (!$ticketForm) {
+                return $selected;
+            }
+
+            $fields = $ticketForm->getDynamicFields();
+            foreach ($fields as $field) {
+                $type = $field->get('type');
+                $name = $field->get('name');
+                $id = $field->get('id');
+
+                if (!in_array($type, $supportedTypes) || !$id) {
+                    continue;
+                }
+
+                $fieldName = $name ?: 'field_' . $id;
+
+                // Check if this field's checkbox is enabled
+                if ($cfg->get('cf_' . $fieldName)) {
+                    $selected[] = $fieldName;
+                }
+            }
+        } catch (Exception $e) {
+            // If form not available, return empty
+        }
+
+        return $selected;
     }
 
     /**
