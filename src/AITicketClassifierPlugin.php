@@ -150,7 +150,8 @@ class AITicketClassifierPlugin extends Plugin {
 
         global $ost;
         if ($ost) {
-            $ost->logDebug('AI Ticket Classifier', $message);
+            // Use logWarning instead of logDebug for visibility
+            $ost->logWarning('AI Classifier Debug', $message);
         }
     }
 
