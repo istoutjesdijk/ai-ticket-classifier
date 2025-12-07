@@ -159,8 +159,13 @@ class AIClassifierClient {
                     'content' => $prompt
                 )
             ),
-            'temperature' => 0.1, // Low temperature for consistent classification
         );
+
+        // Temperature is not supported by gpt-5 and o-series models
+        $noTemperatureModels = preg_match('/^(gpt-5|o1|o3)/i', $this->model);
+        if (!$noTemperatureModels) {
+            $payload['temperature'] = 0.1; // Low temperature for consistent classification
+        }
 
         // Determine which token parameter to use
         // Legacy models (gpt-3.5, base gpt-4) use max_tokens
