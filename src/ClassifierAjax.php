@@ -84,14 +84,8 @@ class ClassifierAjaxController extends AjaxController {
                 Http::response(500, $this->encode(array('ok' => false, 'error' => __('API key not configured'))));
             }
 
-            // Get available topics and priorities
-            $topics = array();
-            foreach (Topic::objects() as $topic) {
-                if ($topic->isActive()) {
-                    $topics[$topic->getId()] = $topic->getName();
-                }
-            }
-
+            // Get available topics and priorities using osTicket's native functions
+            $topics = Topic::getHelpTopics(false, false);
             $priorities = Priority::getPriorities();
 
             // Get custom fields

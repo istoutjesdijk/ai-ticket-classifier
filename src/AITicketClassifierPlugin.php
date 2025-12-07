@@ -343,21 +343,9 @@ class AITicketClassifierPlugin extends Plugin {
      * @return array Topics as [id => name]
      */
     private function getAvailableTopics() {
-        $topics = array();
-
-        try {
-            // Get all topics and filter by isActive() method
-            // (osTicket uses flags field, not isactive column)
-            foreach (Topic::objects() as $topic) {
-                if ($topic->isActive()) {
-                    $topics[$topic->getId()] = $topic->getName();
-                }
-            }
-        } catch (Exception $e) {
-            // Fallback if query fails
-        }
-
-        return $topics;
+        // Use osTicket's native function: getHelpTopics($publicOnly, $disabled)
+        // false, false = all non-public + only active topics
+        return Topic::getHelpTopics(false, false);
     }
 
     /**
@@ -366,18 +354,8 @@ class AITicketClassifierPlugin extends Plugin {
      * @return array Priorities as [id => name]
      */
     private function getAvailablePriorities() {
-        $priorities = array();
-
-        try {
-            $list = Priority::getPriorities();
-            foreach ($list as $id => $desc) {
-                $priorities[$id] = $desc;
-            }
-        } catch (Exception $e) {
-            // Fallback if query fails
-        }
-
-        return $priorities;
+        // Use osTicket's native function
+        return Priority::getPriorities();
     }
 
     /**
