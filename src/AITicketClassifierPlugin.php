@@ -36,6 +36,10 @@ class AITicketClassifierPlugin extends Plugin {
         Signal::connect('ticket.created', array($this, 'onTicketCreated'), 'Ticket');
         Signal::connect('threadentry.created', array($this, 'onThreadEntryCreated'));
 
+        // Register UI hooks for manual classification
+        Signal::connect('ticket.view.more', array($this, 'onTicketViewMore'), 'Ticket');
+        Signal::connect('ajax.scp', array($this, 'onAjaxScp'));
+
         // Debug log bootstrap
         if ($cfg && $cfg->get('debug_logging')) {
             global $ost;
@@ -54,6 +58,86 @@ class AITicketClassifierPlugin extends Plugin {
      */
     public static function getActiveConfig() {
         return self::$active_config;
+    }
+
+    /**
+     * Signal handler: Add menu item to ticket "More" dropdown
+     *
+     * @param Ticket $ticket The ticket being viewed
+     * @param array $data Menu data passed by reference
+     */
+    function onTicketViewMore($ticket, &$data) {
+        global $thisstaff;
+
+        // Only show for staff with edit permission
+        if (!$thisstaff || !$thisstaff->isStaff()) return;
+        if (!$ticket || !method_exists($ticket, 'getId')) return;
+
+        $role = $ticket->getRole($thisstaff);
+        if (!$role || !$role->hasPerm(Ticket::PERM_EDIT)) return;
+
+        // Get CSRF token
+        global $ost;
+        $csrf = $ost ? $ost->getCSRF()->getTokenName() . '=' . $ost->getCSRF()->getToken() : '';
+
+        ?>
+        <li>
+            <a class="ai-classify-ticket" href="#"
+               data-ticket-id="<?php echo (int)$ticket->getId(); ?>"
+               onclick="aiClassifyTicket(<?php echo (int)$ticket->getId(); ?>, '<?php echo $csrf; ?>'); return false;">
+                <i class="icon-magic"></i>
+                <?php echo __('Classify with AI'); ?>
+            </a>
+        </li>
+        <script type="text/javascript">
+        function aiClassifyTicket(ticketId, csrf) {
+            if (!confirm('<?php echo __('Classify this ticket using AI?'); ?>')) return;
+
+            $.ajax({
+                url: 'ajax.php/ai-classifier/classify',
+                type: 'POST',
+                data: {
+                    ticket_id: ticketId,
+                    __CSRFToken__: csrf.split('=')[1]
+                },
+                dataType: 'json',
+                beforeSend: function() {
+                    // Show loading
+                    $('a.ai-classify-ticket').html('<i class="icon-spinner icon-spin"></i> <?php echo __('Classifying...'); ?>');
+                },
+                success: function(response) {
+                    if (response.ok) {
+                        alert('<?php echo __('Classification complete:'); ?>\n' + response.message);
+                        location.reload();
+                    } else {
+                        alert('<?php echo __('Error:'); ?> ' + response.error);
+                    }
+                },
+                error: function(xhr) {
+                    var error = '<?php echo __('Request failed'); ?>';
+                    try {
+                        var resp = JSON.parse(xhr.responseText);
+                        if (resp.error) error = resp.error;
+                    } catch(e) {}
+                    alert('<?php echo __('Error:'); ?> ' + error);
+                },
+                complete: function() {
+                    $('a.ai-classify-ticket').html('<i class="icon-magic"></i> <?php echo __('Classify with AI'); ?>');
+                }
+            });
+        }
+        </script>
+        <?php
+    }
+
+    /**
+     * Signal handler: Register AJAX routes
+     *
+     * @param object $dispatcher AJAX dispatcher
+     */
+    function onAjaxScp($dispatcher) {
+        require_once(__DIR__ . '/ClassifierAjax.php');
+        $dispatcher->append(url_post('^/ai-classifier/classify$', array('ClassifierAjaxController', 'classify')));
     }
 
     /**
