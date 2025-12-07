@@ -2,7 +2,7 @@
 /**
  * AI Ticket Classifier Plugin - Configuration
  *
- * Defines all configuration fields for the plugin admin panel.
+ * Defines configuration fields for the plugin admin panel.
  */
 
 require_once(INCLUDE_DIR . 'class.forms.php');
@@ -10,27 +10,26 @@ require_once(INCLUDE_DIR . 'class.dynamic_forms.php');
 
 class AITicketClassifierPluginConfig extends PluginConfig {
 
+    /** @var array Supported custom field types */
+    const SUPPORTED_FIELD_TYPES = array('text', 'memo', 'choices', 'bool');
+
     /**
-     * Returns configuration form options
-     *
-     * @return array Form configuration options
+     * Form options
      */
-    function getFormOptions() {
+    public function getFormOptions() {
         return array(
             'title' => __('AI Ticket Classifier Settings'),
-            'instructions' => __('Configure AI-powered automatic ticket classification. The plugin will assign priority, topic, and optionally fill custom form fields based on ticket content.'),
+            'instructions' => __('Configure AI-powered automatic ticket classification.'),
         );
     }
 
     /**
-     * Returns configuration form fields
-     *
-     * @return array Configuration form fields
+     * Configuration fields
      */
-    function getFields() {
+    public function getFields() {
         $fields = array();
 
-        // --- AI Provider Settings ---
+        // --- AI Provider ---
         $fields['section_provider'] = new SectionBreakField(array(
             'label' => __('AI Provider Settings'),
         ));
@@ -43,7 +42,7 @@ class AITicketClassifierPluginConfig extends PluginConfig {
                 'openai' => __('OpenAI'),
                 'anthropic' => __('Anthropic'),
             ),
-            'hint' => __('Select which AI provider to use for classification.'),
+            'hint' => __('Select which AI provider to use.'),
         ));
 
         $fields['api_key'] = new TextboxField(array(
@@ -57,11 +56,11 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             'label' => __('Model'),
             'required' => true,
             'default' => 'gpt-4o-mini',
-            'hint' => __('Model to use. OpenAI: gpt-4o-mini, gpt-4o. Anthropic: claude-3-haiku-20240307, claude-3-5-sonnet-20241022'),
+            'hint' => __('OpenAI: gpt-4o-mini, gpt-4o, gpt-5-mini. Anthropic: claude-3-haiku-20240307'),
             'configuration' => array('size' => 40, 'length' => 100),
         ));
 
-        // --- Classification Triggers ---
+        // --- Triggers ---
         $fields['section_triggers'] = new SectionBreakField(array(
             'label' => __('Classification Triggers'),
         ));
@@ -70,7 +69,7 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             'label' => __('Classify New Tickets'),
             'default' => true,
             'configuration' => array(
-                'desc' => __('Automatically classify tickets when they are created.')
+                'desc' => __('Automatically classify tickets when created.')
             )
         ));
 
@@ -78,11 +77,11 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             'label' => __('Reclassify on Customer Reply'),
             'default' => false,
             'configuration' => array(
-                'desc' => __('Reclassify ticket when customer sends a new message.')
+                'desc' => __('Reclassify when customer sends a new message.')
             )
         ));
 
-        // --- Classification Options ---
+        // --- Options ---
         $fields['section_options'] = new SectionBreakField(array(
             'label' => __('Classification Options'),
         ));
@@ -99,24 +98,24 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             'label' => __('Set Topic/Category'),
             'default' => true,
             'configuration' => array(
-                'desc' => __('Allow AI to set ticket topic/category.')
+                'desc' => __('Allow AI to set ticket topic.')
             )
         ));
 
-        // Custom fields - checkboxes for each available field
-        $customFieldChoices = $this->getCustomFieldChoices();
-        if (!empty($customFieldChoices)) {
+        // --- Custom Fields ---
+        $customFields = $this->getCustomFieldChoices();
+        if (!empty($customFields)) {
             $fields['section_custom_fields'] = new SectionBreakField(array(
                 'label' => __('AI-Managed Custom Fields'),
-                'hint' => __('Select which custom form fields the AI should fill.'),
+                'hint' => __('Select which custom fields the AI should fill.'),
             ));
 
-            foreach ($customFieldChoices as $fieldName => $fieldLabel) {
-                $fields['cf_' . $fieldName] = new BooleanField(array(
-                    'label' => $fieldLabel,
+            foreach ($customFields as $name => $label) {
+                $fields['cf_' . $name] = new BooleanField(array(
+                    'label' => $label,
                     'default' => false,
                     'configuration' => array(
-                        'desc' => sprintf(__('Let AI fill "%s"'), $fieldLabel)
+                        'desc' => sprintf(__('Let AI fill "%s"'), $label)
                     )
                 ));
             }
@@ -129,49 +128,36 @@ class AITicketClassifierPluginConfig extends PluginConfig {
 
         $fields['error_handling'] = new ChoiceField(array(
             'label' => __('On API Error'),
-            'required' => false,
             'default' => 'log',
             'choices' => array(
                 'log' => __('Log to System Logs'),
                 'silent' => __('Silent (no logging)'),
             ),
-            'hint' => __('Log errors to Admin → Dashboard → System Logs, or fail silently.'),
+            'hint' => __('How to handle classification errors.'),
         ));
 
         $fields['debug_logging'] = new BooleanField(array(
             'label' => __('Debug Logging'),
             'default' => false,
             'configuration' => array(
-                'desc' => __('Log all activity to System Logs (for troubleshooting). Disable in production.')
+                'desc' => __('Log all activity (disable in production).')
             )
         ));
 
-        // --- Advanced Settings ---
+        // --- Advanced ---
         $fields['section_advanced'] = new SectionBreakField(array(
             'label' => __('Advanced Settings'),
         ));
 
-        $fields['custom_prompt'] = new TextareaField(array(
-            'label' => __('Custom Classification Prompt'),
-            'required' => false,
-            'hint' => __('Optional: Custom instructions for the AI. Leave empty to use the default prompt. Use %{ticket.subject} and %{ticket.message} as placeholders.'),
-            'configuration' => array(
-                'rows' => 6,
-                'html' => false,
-            ),
-        ));
-
         $fields['temperature'] = new TextboxField(array(
             'label' => __('Temperature'),
-            'required' => false,
             'default' => '1',
-            'hint' => __('Controls randomness (0-2). Lower = more consistent. Note: gpt-5 and o-series models only support temperature 1.'),
+            'hint' => __('Randomness (0-2). Note: gpt-5 and o-series only support 1.'),
             'configuration' => array('size' => 10, 'length' => 10),
         ));
 
         $fields['timeout'] = new TextboxField(array(
             'label' => __('API Timeout (seconds)'),
-            'required' => false,
             'default' => '30',
             'hint' => __('Maximum time to wait for AI response.'),
             'configuration' => array('size' => 10, 'length' => 10),
@@ -181,78 +167,59 @@ class AITicketClassifierPluginConfig extends PluginConfig {
     }
 
     /**
-     * Get available custom form fields for ticket forms
-     *
-     * @return array Field choices in format [field_id => label]
+     * Get available custom fields from ticket form
      */
     private function getCustomFieldChoices() {
         $choices = array();
 
-        // Supported field types for AI classification
-        $supportedTypes = array('text', 'memo', 'choices', 'bool');
-
         try {
-            // Get the ticket form
             $ticketForm = TicketForm::getInstance();
             if (!$ticketForm) {
                 return $choices;
             }
 
-            // Get all dynamic fields from the ticket form
-            $fields = $ticketForm->getDynamicFields();
-            foreach ($fields as $field) {
+            foreach ($ticketForm->getDynamicFields() as $field) {
                 $type = $field->get('type');
                 $name = $field->get('name');
                 $label = $field->get('label');
                 $id = $field->get('id');
 
-                // Skip built-in fields and unsupported types
-                if (!in_array($type, $supportedTypes)) {
+                if (!in_array($type, self::SUPPORTED_FIELD_TYPES) || !$id) {
                     continue;
                 }
 
-                // Skip fields without a name or ID
-                if (!$id) {
-                    continue;
-                }
-
-                // Use field name if available, otherwise use ID
                 $key = $name ?: 'field_' . $id;
-                $displayLabel = $label ?: $name ?: 'Field #' . $id;
-                $displayLabel .= ' (' . $type . ')';
-
+                $displayLabel = ($label ?: $name ?: 'Field #' . $id) . " ({$type})";
                 $choices[$key] = $displayLabel;
             }
         } catch (Exception $e) {
-            // If forms aren't available yet, return empty
+            // Forms not available
         }
 
         return $choices;
     }
 
     /**
-     * Validate configuration before saving
-     *
-     * @param array &$config Configuration values
-     * @param array &$errors Error messages
-     * @return bool True if valid
+     * Validate before save
      */
-    function pre_save(&$config, &$errors) {
-        // Validate API key is provided
+    public function pre_save(&$config, &$errors) {
         if (empty($config['api_key'])) {
             $errors['api_key'] = __('API key is required.');
             return false;
         }
 
-        // Validate model is provided
         if (empty($config['model'])) {
             $errors['model'] = __('Model name is required.');
             return false;
         }
 
-        // Validate timeout is numeric
         if (!empty($config['timeout']) && !is_numeric($config['timeout'])) {
             $errors['timeout'] = __('Timeout must be a number.');
+            return false;
+        }
+
+        if (!empty($config['temperature']) && !is_numeric($config['temperature'])) {
+            $errors['temperature'] = __('Temperature must be a number.');
             return false;
         }
 
