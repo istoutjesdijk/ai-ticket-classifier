@@ -85,34 +85,21 @@ class ClassifierAjaxController extends AjaxController {
                 Http::response(500, $this->encode(array('ok' => false, 'error' => __('API key not configured'))));
             }
 
-            // Debug log helper
-            $debugLog = function($msg) use ($cfg, $ost) {
-                if ($cfg->get('debug_logging') && $ost) {
-                    $ost->logDebug('AI Ticket Classifier', $msg);
-                }
-            };
-
-            $debugLog("=== Manual classification started for ticket #{$ticket->getNumber()} ===");
-
             // Get available topics and priorities using osTicket's native functions
             $topics = Topic::getHelpTopics(false, false);
             $priorities = Priority::getPriorities();
-            $debugLog("Topics: " . count($topics) . ", Priorities: " . count($priorities));
 
-            // Get custom fields
+            // Get custom fields using plugin's static methods
             $customFields = array();
-            $selectedFields = $this->getSelectedCustomFields($cfg, $debugLog);
+            $selectedFields = AITicketClassifierPlugin::getSelectedCustomFields($cfg);
             if (!empty($selectedFields)) {
-                $customFields = $this->getCustomFieldDefinitions($ticket, $selectedFields, $debugLog);
+                $customFields = AITicketClassifierPlugin::getCustomFieldDefinitions($ticket, $selectedFields);
             }
-            $debugLog("Custom fields to fill: " . count($customFields));
 
             // Call AI
             require_once(__DIR__ . '/AIClient.php');
             $client = new AIClassifierClient($provider, $apiKey, $model, $timeout, $temperature);
-            $debugLog("Calling AI API with provider: {$provider}, model: {$model}");
             $result = $client->classify($content, $topics, $priorities, $customFields);
-            $debugLog("AI response received: topic_id={$result['topic_id']}, priority_id={$result['priority_id']}, custom_fields=" . count($result['custom_fields']));
 
             // Apply results
             $changes = array();
@@ -182,98 +169,5 @@ class ClassifierAjaxController extends AjaxController {
         $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
         $text = preg_replace('/\s+/', ' ', $text);
         return trim($text);
-    }
-
-    /**
-     * Get selected custom fields from config checkboxes
-     */
-    private function getSelectedCustomFields($cfg, $debugLog = null) {
-        $selected = array();
-        $supportedTypes = array('text', 'memo', 'choices', 'bool');
-
-        try {
-            $ticketForm = TicketForm::getInstance();
-            if (!$ticketForm) {
-                if ($debugLog) $debugLog("getSelectedCustomFields: TicketForm not available");
-                return $selected;
-            }
-
-            $fields = $ticketForm->getDynamicFields();
-            if ($debugLog) $debugLog("getSelectedCustomFields: Found " . count($fields) . " dynamic fields");
-
-            foreach ($fields as $field) {
-                $type = $field->get('type');
-                $name = $field->get('name');
-                $id = $field->get('id');
-
-                if (!in_array($type, $supportedTypes) || !$id) {
-                    continue;
-                }
-
-                $fieldName = $name ?: 'field_' . $id;
-                $configKey = 'cf_' . $fieldName;
-                $configValue = $cfg->get($configKey);
-
-                if ($debugLog) $debugLog("  Checking {$configKey}: " . ($configValue ? 'ENABLED' : 'disabled'));
-
-                if ($configValue) {
-                    $selected[] = $fieldName;
-                }
-            }
-        } catch (Exception $e) {
-            if ($debugLog) $debugLog("getSelectedCustomFields ERROR: " . $e->getMessage());
-        }
-
-        return $selected;
-    }
-
-    /**
-     * Get custom field definitions for AI
-     */
-    private function getCustomFieldDefinitions($ticket, $selectedFields, $debugLog = null) {
-        $definitions = array();
-        $supportedTypes = array('text', 'memo', 'choices', 'bool');
-
-        try {
-            $forms = DynamicFormEntry::forTicket($ticket->getId());
-            foreach ($forms as $form) {
-                $fields = $form->getFields();
-                foreach ($fields as $field) {
-                    $name = $field->get('name');
-                    $id = $field->get('id');
-                    $type = $field->get('type');
-                    $label = $field->get('label');
-
-                    $key = $name ?: 'field_' . $id;
-                    if (!in_array($key, $selectedFields)) {
-                        continue;
-                    }
-
-                    if (!in_array($type, $supportedTypes)) {
-                        continue;
-                    }
-
-                    $def = array(
-                        'type' => $type,
-                        'label' => $label ?: $name,
-                    );
-
-                    if ($type === 'choices') {
-                        $choices = array();
-                        if (method_exists($field, 'getChoices')) {
-                            $choices = $field->getChoices();
-                        }
-                        $def['choices'] = $choices;
-                    }
-
-                    $definitions[$key] = $def;
-                    if ($debugLog) $debugLog("  Custom field defined: {$key} (type={$type}, label={$label})");
-                }
-            }
-        } catch (Exception $e) {
-            if ($debugLog) $debugLog("getCustomFieldDefinitions ERROR: " . $e->getMessage());
-        }
-
-        return $definitions;
     }
 }
