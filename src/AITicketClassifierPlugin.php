@@ -288,9 +288,13 @@ class AITicketClassifierPlugin extends Plugin {
         // Get custom fields to fill (from cf_* checkboxes)
         $customFields = array();
         $selectedFields = $this->getSelectedCustomFields($cfg);
+        $this->debugLog("Selected custom fields from config: " . count($selectedFields) . " - " . implode(', ', $selectedFields), $cfg);
         if (!empty($selectedFields)) {
             $customFields = $this->getCustomFieldDefinitions($ticket, $selectedFields);
-            $this->debugLog("Custom fields to fill: " . count($customFields) . " - " . implode(', ', $selectedFields), $cfg);
+            $this->debugLog("Custom field definitions loaded: " . count($customFields), $cfg);
+            foreach ($customFields as $name => $def) {
+                $this->debugLog("  - {$name}: type={$def['type']}, label={$def['label']}", $cfg);
+            }
         }
 
         // Create AI client and classify
@@ -364,10 +368,13 @@ class AITicketClassifierPlugin extends Plugin {
         try {
             $ticketForm = TicketForm::getInstance();
             if (!$ticketForm) {
+                $this->debugLog("getSelectedCustomFields: TicketForm not available", $cfg);
                 return $selected;
             }
 
             $fields = $ticketForm->getDynamicFields();
+            $this->debugLog("getSelectedCustomFields: Found " . count($fields) . " dynamic fields", $cfg);
+
             foreach ($fields as $field) {
                 $type = $field->get('type');
                 $name = $field->get('name');
@@ -378,14 +385,18 @@ class AITicketClassifierPlugin extends Plugin {
                 }
 
                 $fieldName = $name ?: 'field_' . $id;
+                $configKey = 'cf_' . $fieldName;
+                $configValue = $cfg->get($configKey);
+
+                $this->debugLog("  Checking {$configKey}: " . ($configValue ? 'ENABLED' : 'disabled'), $cfg);
 
                 // Check if this field's checkbox is enabled
-                if ($cfg->get('cf_' . $fieldName)) {
+                if ($configValue) {
                     $selected[] = $fieldName;
                 }
             }
         } catch (Exception $e) {
-            // If form not available, return empty
+            $this->debugLog("getSelectedCustomFields ERROR: " . $e->getMessage(), $cfg);
         }
 
         return $selected;
