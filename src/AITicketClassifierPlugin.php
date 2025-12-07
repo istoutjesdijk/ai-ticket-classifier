@@ -91,8 +91,6 @@ class AITicketClassifierPlugin extends Plugin {
         </li>
         <script type="text/javascript">
         function aiClassifyTicket(ticketId, csrf) {
-            if (!confirm('<?php echo __('Classify this ticket using AI?'); ?>')) return;
-
             $.ajax({
                 url: 'ajax.php/ai-classifier/classify',
                 type: 'POST',
@@ -348,9 +346,12 @@ class AITicketClassifierPlugin extends Plugin {
         $topics = array();
 
         try {
-            $query = Topic::objects()->filter(array('isactive' => 1));
-            foreach ($query as $topic) {
-                $topics[$topic->getId()] = $topic->getName();
+            // Get all topics and filter by isActive() method
+            // (osTicket uses flags field, not isactive column)
+            foreach (Topic::objects() as $topic) {
+                if ($topic->isActive()) {
+                    $topics[$topic->getId()] = $topic->getName();
+                }
             }
         } catch (Exception $e) {
             // Fallback if query fails
