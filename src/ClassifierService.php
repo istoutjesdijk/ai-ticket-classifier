@@ -170,47 +170,69 @@ class ClassifierService {
         // Apply custom fields
         if (!empty($result['custom_fields'])) {
             $this->debugLog("Custom fields to apply: " . json_encode($result['custom_fields']));
+
+            // First, ensure all forms are saved to the database
+            // During ticket.created signal, forms may not be fully persisted yet
+            foreach ($forms as $form) {
+                if (!$form->get('id')) {
+                    $this->debugLog("Saving form entry first (no ID yet)...");
+                    $form->save();
+                }
+            }
+
+            // Now reload forms from database to get properly initialized answers
+            $forms = DynamicFormEntry::forTicket($ticket->getId());
+            $this->debugLog("Reloaded forms from database");
+
             $formCount = 0;
             foreach ($forms as $form) {
                 $formCount++;
-                $formId = method_exists($form, 'getId') ? $form->getId() : 'unknown';
+                $formId = $form->get('id');
                 $this->debugLog("Processing form #{$formCount} (ID: {$formId})");
 
-                foreach ($form->getFields() as $field) {
+                // Iterate through answers directly
+                foreach ($form->getAnswers() as $answer) {
+                    $field = $answer->getField();
                     $name = $field->get('name');
                     $id = $field->get('id');
                     $type = $field->get('type');
                     $key = $name ?: 'field_' . $id;
 
-                    $this->debugLog("  Field: {$key} (name={$name}, id={$id}, type={$type})");
-
-                    if (isset($result['custom_fields'][$key])) {
-                        $value = $result['custom_fields'][$key];
-                        $answerKey = $name ?: $id;
-
-                        $this->debugLog("  -> Setting {$answerKey} = {$value}");
-
-                        // Try setting the answer
-                        $form->setAnswer($answerKey, $value);
-
-                        // Verify it was set
-                        $currentValue = $field->getAnswer();
-                        $this->debugLog("  -> After setAnswer, current value: " . print_r($currentValue, true));
-
-                        $changes[] = "{$key}: {$value}";
+                    if (!isset($result['custom_fields'][$key])) {
+                        continue;
                     }
+
+                    $value = $result['custom_fields'][$key];
+                    $this->debugLog("  Field {$key}: setting value '{$value}' (type={$type})");
+
+                    // Set value based on field type
+                    if ($type === 'choices') {
+                        // For choice fields, pass the key as value_id
+                        $answer->setValue(null, $value);
+                    } else {
+                        $answer->setValue($value);
+                    }
+
+                    // Mark the answer as dirty to ensure it gets saved
+                    $rawValue = $answer->get('value');
+                    $rawValueId = $answer->get('value_id');
+                    $this->debugLog("  -> After setValue: value='{$rawValue}', value_id='{$rawValueId}'");
+
+                    $changes[] = "{$key}: {$value}";
                 }
+
+                // Save this form's answers immediately
+                $saveResult = $form->saveAnswers();
+                $this->debugLog("  Form #{$formCount} saveAnswers(): " . ($saveResult ? 'OK' : 'FAILED'));
             }
             $this->debugLog("Processed {$formCount} forms");
         } else {
             $this->debugLog("No custom fields to apply");
         }
 
-        // Save forms and ticket
-        foreach ($forms as $form) {
-            $form->saveAnswers();
-        }
+        // Save ticket
         $ticket->save();
+        $this->debugLog("Ticket saved");
 
         return $changes;
     }
