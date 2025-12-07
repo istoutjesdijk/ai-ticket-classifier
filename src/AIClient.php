@@ -160,8 +160,18 @@ class AIClassifierClient {
                 )
             ),
             'temperature' => 0.1, // Low temperature for consistent classification
-            'max_tokens' => 500,
         );
+
+        // Determine which token parameter to use
+        // Legacy models (gpt-3.5, gpt-4 without -o) use max_tokens
+        // Newer models (gpt-4o, gpt-4-turbo, o1, o3, etc.) use max_completion_tokens
+        $isLegacyModel = preg_match('/^gpt-(3\.5|4-(?!turbo|o))/i', $this->model);
+
+        if ($isLegacyModel) {
+            $payload['max_tokens'] = 500;
+        } else {
+            $payload['max_completion_tokens'] = 500;
+        }
 
         $headers = array(
             'Content-Type: application/json',
