@@ -53,6 +53,22 @@ class AITicketClassifierPlugin extends Plugin {
     }
 
     /**
+     * Log debug message if debug logging is enabled
+     *
+     * @param string $message Debug message
+     * @param PluginConfig $cfg Plugin configuration
+     */
+    private function debugLog($message, $cfg = null) {
+        if (!$cfg) $cfg = self::$active_config;
+        if (!$cfg || !$cfg->get('debug_logging')) return;
+
+        global $ost;
+        if ($ost) {
+            $ost->logDebug('AI Ticket Classifier', $message);
+        }
+    }
+
+    /**
      * Signal handler: Classify ticket when created
      *
      * @param Ticket $ticket Newly created ticket
@@ -62,20 +78,25 @@ class AITicketClassifierPlugin extends Plugin {
         $cfg = self::$active_config;
         if (!$cfg) return;
 
+        $this->debugLog("=== onTicketCreated triggered for ticket #{$ticket->getNumber()} ===", $cfg);
+
         try {
             // Get the initial message from the ticket thread
             $message = $this->getLatestCustomerMessage($ticket);
             if (!$message) {
                 $message = $ticket->getSubject();
+                $this->debugLog("No message found, using subject only", $cfg);
             }
 
             // Build full content for classification
             $content = "Subject: " . $ticket->getSubject() . "\n\n" . $message;
+            $this->debugLog("Content length: " . strlen($content) . " chars", $cfg);
 
             // Classify the ticket
             $this->classifyTicket($ticket, $content, $cfg);
 
         } catch (Exception $e) {
+            $this->debugLog("ERROR: " . $e->getMessage(), $cfg);
             $this->handleError($e, $cfg);
         }
     }
@@ -134,28 +155,37 @@ class AITicketClassifierPlugin extends Plugin {
         $model = $cfg->get('model') ?: 'gpt-4o-mini';
         $timeout = (int) ($cfg->get('timeout') ?: 30);
 
+        $this->debugLog("Provider: {$provider}, Model: {$model}, Timeout: {$timeout}s", $cfg);
+
         if (!$apiKey) {
             throw new Exception('API key not configured');
         }
+        $this->debugLog("API key present: " . strlen($apiKey) . " chars", $cfg);
 
         // Get available topics
         $topics = $this->getAvailableTopics();
+        $this->debugLog("Available topics: " . count($topics) . " - " . implode(', ', $topics), $cfg);
 
         // Get available priorities
         $priorities = $this->getAvailablePriorities();
+        $this->debugLog("Available priorities: " . count($priorities) . " - " . implode(', ', $priorities), $cfg);
 
         // Get custom fields to fill
         $customFields = array();
         if ($cfg->get('custom_fields')) {
             $customFields = $this->getCustomFieldDefinitions($ticket, $cfg->get('custom_fields'));
+            $this->debugLog("Custom fields to fill: " . count($customFields), $cfg);
         }
 
         // Create AI client and classify
+        $this->debugLog("Calling AI API...", $cfg);
         $client = new AIClassifierClient($provider, $apiKey, $model, $timeout);
         $result = $client->classify($content, $topics, $priorities, $customFields);
+        $this->debugLog("AI response: topic_id={$result['topic_id']}, priority_id={$result['priority_id']}, custom_fields=" . count($result['custom_fields']), $cfg);
 
         // Apply classification results
         $this->applyClassification($ticket, $result, $cfg);
+        $this->debugLog("=== Classification complete ===", $cfg);
     }
 
     /**

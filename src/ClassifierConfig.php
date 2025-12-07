@@ -134,6 +134,14 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             'hint' => __('Log errors to Admin → Dashboard → System Logs, or fail silently.'),
         ));
 
+        $fields['debug_logging'] = new BooleanField(array(
+            'label' => __('Debug Logging'),
+            'default' => false,
+            'configuration' => array(
+                'desc' => __('Log all activity to System Logs (for troubleshooting). Disable in production.')
+            )
+        ));
+
         // --- Advanced Settings ---
         $fields['section_advanced'] = new SectionBreakField(array(
             'label' => __('Advanced Settings'),
