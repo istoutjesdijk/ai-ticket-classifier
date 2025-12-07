@@ -117,6 +117,13 @@ When enabled, tickets are automatically classified:
 - **429 Too Many Requests**: Rate limit exceeded
 - **500/503**: Provider service issues
 
+## Related Plugins
+
+This plugin works great in combination with [AI Response Generator](https://github.com/istoutjesdijk/ai-response-generator) - automatically generate professional responses to tickets using AI. Together they provide a complete AI-powered ticket handling solution:
+
+1. **AI Ticket Classifier** - Automatically categorizes and prioritizes incoming tickets
+2. **AI Response Generator** - Suggests or generates responses for agents
+
 ## License
 
 MIT License
