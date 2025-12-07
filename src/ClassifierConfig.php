@@ -46,10 +46,10 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             'hint' => __('Select which AI provider to use for classification.'),
         ));
 
-        $fields['api_key'] = new PasswordField(array(
+        $fields['api_key'] = new TextboxField(array(
             'label' => __('API Key'),
             'required' => true,
-            'hint' => __('Your API key for the selected provider. Stored encrypted.'),
+            'hint' => __('Your API key for the selected provider.'),
             'configuration' => array('size' => 80, 'length' => 255),
         ));
 
