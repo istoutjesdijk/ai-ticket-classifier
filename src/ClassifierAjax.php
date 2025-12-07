@@ -86,7 +86,7 @@ class ClassifierAjaxController extends AjaxController {
 
             // Get available topics and priorities
             $topics = array();
-            $topicQuery = Topic::objects()->filter(array('active' => 1));
+            $topicQuery = Topic::objects()->filter(array('isactive' => 1));
             foreach ($topicQuery as $topic) {
                 $topics[$topic->getId()] = $topic->getName();
             }

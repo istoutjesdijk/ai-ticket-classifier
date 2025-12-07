@@ -270,7 +270,7 @@ class AITicketClassifierPlugin extends Plugin {
 
         // Get available topics
         $topics = $this->getAvailableTopics();
-        $this->debugLog("Available topics: " . count($topics) . " - " . implode(', ', $topics), $cfg);
+        $this->debugLog("Available topics: " . count($topics) . (count($topics) > 0 ? " - " . implode(', ', $topics) : ""), $cfg);
 
         // Get available priorities
         $priorities = $this->getAvailablePriorities();
@@ -348,7 +348,7 @@ class AITicketClassifierPlugin extends Plugin {
         $topics = array();
 
         try {
-            $query = Topic::objects()->filter(array('active' => 1));
+            $query = Topic::objects()->filter(array('isactive' => 1));
             foreach ($query as $topic) {
                 $topics[$topic->getId()] = $topic->getName();
             }
