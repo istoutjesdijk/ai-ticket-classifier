@@ -128,11 +128,10 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             'required' => false,
             'default' => 'log',
             'choices' => array(
-                'log' => __('Log error only'),
-                'silent' => __('Silent skip (no action)'),
-                'both' => __('Log error and skip'),
+                'log' => __('Log to System Logs'),
+                'silent' => __('Silent (no logging)'),
             ),
-            'hint' => __('What to do when the AI API returns an error.'),
+            'hint' => __('Log errors to Admin → Dashboard → System Logs, or fail silently.'),
         ));
 
         // --- Advanced Settings ---

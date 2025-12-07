@@ -376,7 +376,7 @@ class AITicketClassifierPlugin extends Plugin {
     private function handleError($e, $cfg) {
         $errorHandling = $cfg->get('error_handling') ?: 'log';
 
-        if ($errorHandling === 'log' || $errorHandling === 'both') {
+        if ($errorHandling === 'log') {
             global $ost;
             if ($ost) {
                 $ost->logError(
@@ -386,8 +386,6 @@ class AITicketClassifierPlugin extends Plugin {
                 );
             }
         }
-
-        // For 'silent' mode, we do nothing extra
-        // The ticket simply won't be classified
+        // For 'silent' mode, no logging - ticket remains unclassified
     }
 }
