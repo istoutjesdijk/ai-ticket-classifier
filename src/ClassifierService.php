@@ -170,9 +170,18 @@ class ClassifierService {
         // Apply custom fields
         if (!empty($result['custom_fields'])) {
             foreach ($forms as $form) {
-                foreach ($result['custom_fields'] as $fieldName => $value) {
-                    $form->setAnswer($fieldName, $value);
-                    $changes[] = "{$fieldName}: {$value}";
+                foreach ($form->getFields() as $field) {
+                    $name = $field->get('name');
+                    $id = $field->get('id');
+                    $key = $name ?: 'field_' . $id;
+
+                    if (isset($result['custom_fields'][$key])) {
+                        $value = $result['custom_fields'][$key];
+                        // Use form's setAnswer with field name/id
+                        $answerKey = $name ?: $id;
+                        $form->setAnswer($answerKey, $value);
+                        $changes[] = "{$key}: {$value}";
+                    }
                 }
             }
         }
@@ -276,7 +285,8 @@ class ClassifierService {
 
         global $ost;
         if ($ost) {
-            $ost->logDebug('AI Ticket Classifier', $message);
+            // Use logWarning because logDebug is often filtered by osTicket
+            $ost->logWarning('AI Classifier Debug', $message);
         }
     }
 
