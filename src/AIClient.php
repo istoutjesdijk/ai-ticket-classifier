@@ -245,24 +245,35 @@ class AIClassifierClient {
     private function curlRequest($url, $payload, $headers) {
         $ch = curl_init($url);
 
+        $jsonPayload = json_encode($payload);
+        if ($jsonPayload === false) {
+            throw new Exception('Failed to encode payload as JSON: ' . json_last_error_msg());
+        }
+
         curl_setopt_array($ch, array(
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_POSTFIELDS => $jsonPayload,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_FOLLOWLOCATION => true,
         ));
 
         $response = curl_exec($ch);
-
-        if ($response === false) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            throw new Exception('cURL error: ' . $error);
-        }
-
+        $curlError = curl_error($ch);
+        $curlErrno = curl_errno($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        if ($response === false || $curlErrno !== 0) {
+            throw new Exception("cURL error ({$curlErrno}): {$curlError}");
+        }
+
+        if ($httpCode === 0) {
+            throw new Exception('No HTTP response received. Check network connectivity.');
+        }
 
         if ($httpCode >= 400) {
             $errorBody = json_decode($response, true);
