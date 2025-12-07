@@ -31,15 +31,19 @@ class AITicketClassifierPlugin extends Plugin {
             self::$active_config = $cfg;
         }
 
-        // Register signal handlers
-        // 1) Classify new tickets when created
-        if ($cfg && $cfg->get('classify_on_create')) {
-            Signal::connect('ticket.created', array($this, 'onTicketCreated'), 'Ticket');
-        }
+        // Always register signal handlers - check config in the handlers
+        // This ensures signals are connected even if config loading has issues
+        Signal::connect('ticket.created', array($this, 'onTicketCreated'), 'Ticket');
+        Signal::connect('threadentry.created', array($this, 'onThreadEntryCreated'));
 
-        // 2) Reclassify tickets when customer sends a new message
-        if ($cfg && $cfg->get('classify_on_message')) {
-            Signal::connect('threadentry.created', array($this, 'onThreadEntryCreated'));
+        // Debug log bootstrap
+        if ($cfg && $cfg->get('debug_logging')) {
+            global $ost;
+            if ($ost) {
+                $classifyCreate = $cfg->get('classify_on_create') ? 'ON' : 'OFF';
+                $classifyMessage = $cfg->get('classify_on_message') ? 'ON' : 'OFF';
+                $ost->logDebug('AI Ticket Classifier', "Plugin bootstrap complete. classify_on_create: {$classifyCreate}, classify_on_message: {$classifyMessage}");
+            }
         }
     }
 
@@ -76,7 +80,18 @@ class AITicketClassifierPlugin extends Plugin {
      */
     function onTicketCreated($ticket, &$data = null) {
         $cfg = self::$active_config;
-        if (!$cfg) return;
+        if (!$cfg) {
+            // Log even without config for debugging
+            global $ost;
+            if ($ost) $ost->logDebug('AI Ticket Classifier', 'onTicketCreated: No config available');
+            return;
+        }
+
+        // Check if classification on create is enabled
+        if (!$cfg->get('classify_on_create')) {
+            $this->debugLog("onTicketCreated: classify_on_create is OFF, skipping", $cfg);
+            return;
+        }
 
         $this->debugLog("=== onTicketCreated triggered for ticket #{$ticket->getNumber()} ===", $cfg);
 
@@ -111,10 +126,17 @@ class AITicketClassifierPlugin extends Plugin {
         $cfg = self::$active_config;
         if (!$cfg) return;
 
+        // Check if classification on message is enabled
+        if (!$cfg->get('classify_on_message')) {
+            return;
+        }
+
         // Only process customer messages (type 'M')
         if ($entry->getType() !== 'M') {
             return;
         }
+
+        $this->debugLog("=== onThreadEntryCreated triggered ===", $cfg);
 
         try {
             // Get the ticket from the thread entry
