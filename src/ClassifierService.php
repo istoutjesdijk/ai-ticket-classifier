@@ -169,21 +169,41 @@ class ClassifierService {
 
         // Apply custom fields
         if (!empty($result['custom_fields'])) {
+            $this->debugLog("Custom fields to apply: " . json_encode($result['custom_fields']));
+            $formCount = 0;
             foreach ($forms as $form) {
+                $formCount++;
+                $formId = method_exists($form, 'getId') ? $form->getId() : 'unknown';
+                $this->debugLog("Processing form #{$formCount} (ID: {$formId})");
+
                 foreach ($form->getFields() as $field) {
                     $name = $field->get('name');
                     $id = $field->get('id');
+                    $type = $field->get('type');
                     $key = $name ?: 'field_' . $id;
+
+                    $this->debugLog("  Field: {$key} (name={$name}, id={$id}, type={$type})");
 
                     if (isset($result['custom_fields'][$key])) {
                         $value = $result['custom_fields'][$key];
-                        // Use form's setAnswer with field name/id
                         $answerKey = $name ?: $id;
+
+                        $this->debugLog("  -> Setting {$answerKey} = {$value}");
+
+                        // Try setting the answer
                         $form->setAnswer($answerKey, $value);
+
+                        // Verify it was set
+                        $currentValue = $field->getAnswer();
+                        $this->debugLog("  -> After setAnswer, current value: " . print_r($currentValue, true));
+
                         $changes[] = "{$key}: {$value}";
                     }
                 }
             }
+            $this->debugLog("Processed {$formCount} forms");
+        } else {
+            $this->debugLog("No custom fields to apply");
         }
 
         // Save forms and ticket
