@@ -138,27 +138,20 @@ class AIClassifierClient {
     }
 
     /**
-     * Call OpenAI API
+     * Call OpenAI Responses API
      */
     private function callOpenAI($systemPrompt, $userMessage) {
         $payload = array(
             'model' => $this->model,
-            'messages' => array(
-                array('role' => 'system', 'content' => $systemPrompt),
-                array('role' => 'user', 'content' => $userMessage)
-            ),
+            'instructions' => $systemPrompt,
+            'input' => $userMessage,
+            'max_output_tokens' => $this->maxTokens,
+            'store' => false,
         );
 
         // Add temperature for models that support it
         if (!$this->isModelWithoutTemperature()) {
             $payload['temperature'] = $this->temperature;
-        }
-
-        // Use correct token parameter based on model
-        if ($this->isLegacyModel()) {
-            $payload['max_tokens'] = $this->maxTokens;
-        } else {
-            $payload['max_completion_tokens'] = $this->maxTokens;
         }
 
         $response = $this->request(AIConfig::OPENAI_URL, $payload, array(
@@ -172,11 +165,15 @@ class AIClassifierClient {
             throw new Exception('OpenAI API error: ' . ($json['error']['message'] ?? 'Unknown'));
         }
 
-        if (!isset($json['choices'][0]['message']['content'])) {
+        if ($json['status'] !== 'completed') {
+            throw new Exception('OpenAI response not completed: ' . ($json['status'] ?? 'unknown'));
+        }
+
+        if (!isset($json['output'][0]['content'][0]['text'])) {
             throw new Exception('Unexpected OpenAI response format');
         }
 
-        return $json['choices'][0]['message']['content'];
+        return $json['output'][0]['content'][0]['text'];
     }
 
     /**
@@ -212,14 +209,7 @@ class AIClassifierClient {
     }
 
     /**
-     * Check if model is legacy (uses max_tokens instead of max_completion_tokens)
-     */
-    private function isLegacyModel() {
-        return preg_match(AIConfig::LEGACY_MODEL_PATTERN, $this->model);
-    }
-
-    /**
-     * Check if model doesn't support temperature parameter
+     * Check if model doesn't support temperature parameter (o-series reasoning models)
      */
     private function isModelWithoutTemperature() {
         return preg_match(AIConfig::NO_TEMPERATURE_PATTERN, $this->model);
