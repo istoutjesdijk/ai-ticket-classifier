@@ -14,7 +14,7 @@ Automatically classify support tickets using AI (OpenAI or Anthropic). The plugi
 ## Requirements
 
 - osTicket 1.18+
-- PHP 7.4+ with cURL extension
+- PHP 8.3+ with cURL extension
 - OpenAI or Anthropic API key
 
 ## Installation
