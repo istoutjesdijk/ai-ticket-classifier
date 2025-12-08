@@ -256,8 +256,19 @@ class ClassifierService {
                     'label' => $label ?: $name,
                 );
 
+                // Add field configuration
+                $config = $field->getConfiguration();
+                if (!empty($config['length'])) {
+                    $def['max_length'] = (int) $config['length'];
+                }
+                if ($type === 'text' && !empty($config['validator'])) {
+                    $def['validator'] = $config['validator'];
+                }
                 if ($type === 'choices' && method_exists($field, 'getChoices')) {
                     $def['choices'] = $field->getChoices();
+                    if (!empty($config['multiselect'])) {
+                        $def['multiselect'] = true;
+                    }
                 }
 
                 $definitions[$key] = $def;

@@ -90,7 +90,16 @@ class AIClassifierClient {
             $prompt .= "CUSTOM FIELDS TO FILL:\n";
             foreach ($customFields as $name => $field) {
                 $prompt .= "- Field: {$name} (Label: {$field['label']}, Type: {$field['type']})";
+                if (!empty($field['max_length'])) {
+                    $prompt .= " - Max {$field['max_length']} characters";
+                }
+                if (!empty($field['validator'])) {
+                    $prompt .= " - Must be valid {$field['validator']}";
+                }
                 if ($field['type'] === 'choices' && !empty($field['choices'])) {
+                    if (!empty($field['multiselect'])) {
+                        $prompt .= " - Multiple selections allowed, return as array";
+                    }
                     $prompt .= " - Choices: " . implode(', ', array_values($field['choices']));
                 } elseif ($field['type'] === 'bool') {
                     $prompt .= " - Use true or false";
@@ -301,15 +310,34 @@ class AIClassifierClient {
                 if ($type === 'bool') {
                     $customFieldValues[$name] = $value ? 1 : 0;
                 } elseif ($type === 'choices' && isset($field['choices'])) {
-                    // Match by value or key
-                    $key = array_search($value, $field['choices']);
-                    if ($key !== false) {
-                        $customFieldValues[$name] = $key;
-                    } elseif (isset($field['choices'][$value])) {
-                        $customFieldValues[$name] = $value;
+                    if (!empty($field['multiselect']) && is_array($value)) {
+                        // Multiselect: map array of values to keys
+                        $keys = array();
+                        foreach ($value as $v) {
+                            $key = array_search($v, $field['choices']);
+                            if ($key !== false) {
+                                $keys[$key] = $field['choices'][$key];
+                            } elseif (isset($field['choices'][$v])) {
+                                $keys[$v] = $field['choices'][$v];
+                            }
+                        }
+                        $customFieldValues[$name] = $keys;
+                    } else {
+                        // Single select: match by value or key
+                        $key = array_search($value, $field['choices']);
+                        if ($key !== false) {
+                            $customFieldValues[$name] = $key;
+                        } elseif (isset($field['choices'][$value])) {
+                            $customFieldValues[$name] = $value;
+                        }
                     }
                 } else {
-                    $customFieldValues[$name] = (string) $value;
+                    $strValue = (string) $value;
+                    // Enforce max length if configured
+                    if (!empty($field['max_length']) && mb_strlen($strValue) > $field['max_length']) {
+                        $strValue = mb_substr($strValue, 0, $field['max_length']);
+                    }
+                    $customFieldValues[$name] = $strValue;
                 }
             }
         }
