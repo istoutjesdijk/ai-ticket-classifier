@@ -7,7 +7,7 @@
 
 require_once(INCLUDE_DIR . 'class.forms.php');
 require_once(INCLUDE_DIR . 'class.dynamic_forms.php');
-require_once(__DIR__ . '/ClassifierService.php');
+require_once(__DIR__ . '/AIConfig.php');
 
 class AITicketClassifierPluginConfig extends PluginConfig {
 
@@ -53,8 +53,8 @@ class AITicketClassifierPluginConfig extends PluginConfig {
         $fields['model'] = new TextboxField(array(
             'label' => __('Model'),
             'required' => true,
-            'default' => 'gpt-4o-mini',
-            'hint' => __('OpenAI: gpt-4o-mini, gpt-4o, gpt-5-mini. Anthropic: claude-3-haiku-20240307'),
+            'default' => AIConfig::DEFAULT_MODEL,
+            'hint' => __('OpenAI: gpt-4o-mini, gpt-4o. Anthropic: claude-3-haiku-20240307'),
             'configuration' => array('size' => 40, 'length' => 100),
         ));
 
@@ -149,15 +149,22 @@ class AITicketClassifierPluginConfig extends PluginConfig {
 
         $fields['temperature'] = new TextboxField(array(
             'label' => __('Temperature'),
-            'default' => '1',
+            'default' => AIConfig::DEFAULT_TEMPERATURE,
             'hint' => __('Randomness (0-2). Note: gpt-5 and o-series only support 1.'),
             'configuration' => array('size' => 10, 'length' => 10),
         ));
 
         $fields['timeout'] = new TextboxField(array(
             'label' => __('API Timeout (seconds)'),
-            'default' => '30',
+            'default' => AIConfig::DEFAULT_TIMEOUT,
             'hint' => __('Maximum time to wait for AI response.'),
+            'configuration' => array('size' => 10, 'length' => 10),
+        ));
+
+        $fields['max_tokens'] = new TextboxField(array(
+            'label' => __('Max Output Tokens'),
+            'default' => AIConfig::DEFAULT_MAX_TOKENS,
+            'hint' => __('Maximum tokens in AI response.'),
             'configuration' => array('size' => 10, 'length' => 10),
         ));
 
@@ -182,7 +189,7 @@ class AITicketClassifierPluginConfig extends PluginConfig {
                 $label = $field->get('label');
                 $id = $field->get('id');
 
-                if (!in_array($type, ClassifierService::SUPPORTED_FIELD_TYPES) || !$id) {
+                if (!in_array($type, AIConfig::SUPPORTED_FIELD_TYPES) || !$id) {
                     continue;
                 }
 
@@ -218,6 +225,11 @@ class AITicketClassifierPluginConfig extends PluginConfig {
 
         if (!empty($config['temperature']) && !is_numeric($config['temperature'])) {
             $errors['temperature'] = __('Temperature must be a number.');
+            return false;
+        }
+
+        if (!empty($config['max_tokens']) && !is_numeric($config['max_tokens'])) {
+            $errors['max_tokens'] = __('Max tokens must be a number.');
             return false;
         }
 

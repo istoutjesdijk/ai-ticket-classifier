@@ -10,12 +10,10 @@ require_once(INCLUDE_DIR . 'class.ticket.php');
 require_once(INCLUDE_DIR . 'class.topic.php');
 require_once(INCLUDE_DIR . 'class.priority.php');
 require_once(INCLUDE_DIR . 'class.dynamic_forms.php');
+require_once(__DIR__ . '/AIConfig.php');
 require_once(__DIR__ . '/AIClient.php');
 
 class ClassifierService {
-
-    /** @var array Supported custom field types */
-    const SUPPORTED_FIELD_TYPES = array('text', 'memo', 'choices', 'bool');
 
     /** @var PluginConfig */
     private $config;
@@ -96,11 +94,12 @@ class ClassifierService {
      * @throws Exception On API error
      */
     private function callAI($content, $ticket) {
-        $provider = $this->config->get('ai_provider') ?: 'openai';
+        $provider = $this->config->get('ai_provider') ?: AIConfig::DEFAULT_PROVIDER;
         $apiKey = $this->config->get('api_key');
-        $model = $this->config->get('model') ?: 'gpt-4o-mini';
-        $timeout = (int) ($this->config->get('timeout') ?: 30);
-        $temperature = (float) ($this->config->get('temperature') ?: 1.0);
+        $model = $this->config->get('model') ?: AIConfig::DEFAULT_MODEL;
+        $timeout = $this->config->get('timeout') ?: null;
+        $temperature = $this->config->get('temperature') ?: null;
+        $maxTokens = $this->config->get('max_tokens') ?: null;
 
         if (!$apiKey) {
             throw new Exception('API key not configured');
@@ -111,7 +110,7 @@ class ClassifierService {
         $priorities = Priority::getPriorities();
         $customFields = $this->getCustomFieldDefinitions($ticket);
 
-        $client = new AIClassifierClient($provider, $apiKey, $model, $timeout, $temperature);
+        $client = new AIClassifierClient($provider, $apiKey, $model, $timeout, $temperature, $maxTokens);
         return $client->classify($content, $topics, $priorities, $customFields);
     }
 
@@ -207,7 +206,7 @@ class ClassifierService {
             $name = $field->get('name');
             $id = $field->get('id');
 
-            if (!in_array($type, self::SUPPORTED_FIELD_TYPES) || !$id) {
+            if (!in_array($type, AIConfig::SUPPORTED_FIELD_TYPES) || !$id) {
                 continue;
             }
 
@@ -247,7 +246,7 @@ class ClassifierService {
                 if (!in_array($key, $selectedFields)) {
                     continue;
                 }
-                if (!in_array($type, self::SUPPORTED_FIELD_TYPES)) {
+                if (!in_array($type, AIConfig::SUPPORTED_FIELD_TYPES)) {
                     continue;
                 }
 

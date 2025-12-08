@@ -7,12 +7,9 @@
 
 require_once(INCLUDE_DIR . 'class.format.php');
 require_once(INCLUDE_DIR . 'class.json.php');
+require_once(__DIR__ . '/AIConfig.php');
 
 class AIClassifierClient {
-
-    const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-    const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
-    const ANTHROPIC_VERSION = '2023-06-01';
 
     /** @var string */
     private $provider;
@@ -29,19 +26,24 @@ class AIClassifierClient {
     /** @var float */
     private $temperature;
 
+    /** @var int */
+    private $maxTokens;
+
     /**
      * @param string $provider 'openai' or 'anthropic'
      * @param string $apiKey API key
      * @param string $model Model name
      * @param int $timeout Timeout in seconds
      * @param float $temperature Temperature (0-2)
+     * @param int $maxTokens Maximum response tokens
      */
-    public function __construct($provider, $apiKey, $model, $timeout = 30, $temperature = 1.0) {
+    public function __construct($provider, $apiKey, $model, $timeout = null, $temperature = null, $maxTokens = null) {
         $this->provider = strtolower($provider);
         $this->apiKey = $apiKey;
         $this->model = $model;
-        $this->timeout = (int) $timeout;
-        $this->temperature = (float) $temperature;
+        $this->timeout = (int) ($timeout ?? AIConfig::DEFAULT_TIMEOUT);
+        $this->temperature = (float) ($temperature ?? AIConfig::DEFAULT_TEMPERATURE);
+        $this->maxTokens = (int) ($maxTokens ?? AIConfig::DEFAULT_MAX_TOKENS);
     }
 
     /**
@@ -154,12 +156,12 @@ class AIClassifierClient {
 
         // Use correct token parameter based on model
         if ($this->isLegacyModel()) {
-            $payload['max_tokens'] = 500;
+            $payload['max_tokens'] = $this->maxTokens;
         } else {
-            $payload['max_completion_tokens'] = 500;
+            $payload['max_completion_tokens'] = $this->maxTokens;
         }
 
-        $response = $this->request(self::OPENAI_URL, $payload, array(
+        $response = $this->request(AIConfig::OPENAI_URL, $payload, array(
             'Content-Type: application/json',
             'Authorization: Bearer ' . $this->apiKey,
         ));
@@ -183,17 +185,17 @@ class AIClassifierClient {
     private function callAnthropic($systemPrompt, $userMessage) {
         $payload = array(
             'model' => $this->model,
-            'max_tokens' => 500,
+            'max_tokens' => $this->maxTokens,
             'system' => $systemPrompt,
             'messages' => array(
                 array('role' => 'user', 'content' => $userMessage)
             ),
         );
 
-        $response = $this->request(self::ANTHROPIC_URL, $payload, array(
+        $response = $this->request(AIConfig::ANTHROPIC_URL, $payload, array(
             'Content-Type: application/json',
             'x-api-key: ' . $this->apiKey,
-            'anthropic-version: ' . self::ANTHROPIC_VERSION,
+            'anthropic-version: ' . AIConfig::ANTHROPIC_VERSION,
         ));
 
         $json = $this->decodeJson($response, 'Anthropic');
@@ -210,19 +212,17 @@ class AIClassifierClient {
     }
 
     /**
-     * Check if model is legacy (uses max_tokens)
+     * Check if model is legacy (uses max_tokens instead of max_completion_tokens)
      */
     private function isLegacyModel() {
-        // gpt-3.5-* and base gpt-4 (not gpt-4o, gpt-4-turbo)
-        return preg_match('/^gpt-(3\.5|4$)/i', $this->model);
+        return preg_match(AIConfig::LEGACY_MODEL_PATTERN, $this->model);
     }
 
     /**
-     * Check if model doesn't support temperature
+     * Check if model doesn't support temperature parameter
      */
     private function isModelWithoutTemperature() {
-        // gpt-5 and o-series models don't support custom temperature
-        return preg_match('/^(gpt-5|o1|o3)/i', $this->model);
+        return preg_match(AIConfig::NO_TEMPERATURE_PATTERN, $this->model);
     }
 
     /**
