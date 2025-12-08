@@ -56,13 +56,11 @@ class AITicketClassifierPlugin extends Plugin {
             return;
         }
 
+        $service = new ClassifierService($cfg);
         try {
-            $service = new ClassifierService($cfg);
             $service->debugLog("Classifying new ticket #{$ticket->getNumber()}");
             $service->classifyTicket($ticket);
-            $service->debugLog("Classification complete for #{$ticket->getNumber()}");
         } catch (Exception $e) {
-            $service = new ClassifierService($cfg);
             $service->logError($e);
         }
     }
@@ -99,12 +97,11 @@ class AITicketClassifierPlugin extends Plugin {
             return;
         }
 
+        $service = new ClassifierService($cfg);
         try {
-            $service = new ClassifierService($cfg);
             $service->debugLog("Reclassifying ticket #{$ticket->getNumber()} on new message");
             $service->classifyTicket($ticket);
         } catch (Exception $e) {
-            $service = new ClassifierService($cfg);
             $service->logError($e);
         }
     }
@@ -120,7 +117,7 @@ class AITicketClassifierPlugin extends Plugin {
         if (!$thisstaff || !$thisstaff->isStaff()) {
             return;
         }
-        if (!$ticket || !method_exists($ticket, 'getId')) {
+        if (!$ticket) {
             return;
         }
 

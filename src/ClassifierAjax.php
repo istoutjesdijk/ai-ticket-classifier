@@ -70,7 +70,7 @@ class ClassifierAjaxController extends AjaxController {
         }
 
         $token = $_POST['__CSRFToken__'] ?? $_SERVER['HTTP_X_CSRFTOKEN'] ?? null;
-        if (!$ost || !$ost->getCSRF()->validateToken($token)) {
+        if (!$token || !$ost->getCSRF()->validateToken($token)) {
             $this->error(403, __('CSRF token validation failed'));
         }
     }

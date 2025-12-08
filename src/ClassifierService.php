@@ -47,10 +47,7 @@ class ClassifierService {
      * @return string
      */
     public function buildTicketContent($ticket) {
-        $message = $this->getLatestCustomerMessage($ticket);
-        if (!$message) {
-            $message = '';
-        }
+        $message = $this->getLatestCustomerMessage($ticket) ?? '';
         return "Subject: " . $ticket->getSubject() . "\n\n" . $message;
     }
 
@@ -61,23 +58,16 @@ class ClassifierService {
      * @return string|null
      */
     public function getLatestCustomerMessage($ticket) {
-        $thread = $ticket->getThread();
-        if (!$thread) {
+        $messages = $ticket->getMessages();
+        if (!$messages) {
             return null;
         }
 
-        $entries = $thread->getEntries();
-        if (!$entries) {
-            return null;
-        }
+        $messages = clone $messages;
+        $messages->order_by('-created');
 
-        $entries = clone $entries;
-        $entries->order_by('-created');
-
-        foreach ($entries as $entry) {
-            if ($entry->getType() === 'M') {
-                return $this->cleanMessageBody($entry->getBody());
-            }
+        foreach ($messages as $message) {
+            return $this->cleanMessageBody($message->getBody());
         }
 
         return null;
@@ -94,16 +84,7 @@ class ClassifierService {
             return '';
         }
 
-        // Use osTicket's native cleaner
-        if (class_exists('ThreadEntryBody')) {
-            return ThreadEntryBody::clean($body);
-        }
-
-        // Fallback
-        $text = strip_tags($body);
-        $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
-        $text = preg_replace('/\s+/', ' ', $text);
-        return trim($text);
+        return ThreadEntryBody::clean($body);
     }
 
     /**
@@ -169,71 +150,36 @@ class ClassifierService {
 
         // Apply custom fields
         if (!empty($result['custom_fields'])) {
-            $this->debugLog("Custom fields to apply: " . json_encode($result['custom_fields']));
-
-            // First, ensure all forms are saved to the database
-            // During ticket.created signal, forms may not be fully persisted yet
+            // Ensure forms are saved during ticket.created signal
             foreach ($forms as $form) {
                 if (!$form->get('id')) {
-                    $this->debugLog("Saving form entry first (no ID yet)...");
                     $form->save();
                 }
             }
-
-            // Now reload forms from database to get properly initialized answers
             $forms = DynamicFormEntry::forTicket($ticket->getId());
-            $this->debugLog("Reloaded forms from database");
 
-            $formCount = 0;
             foreach ($forms as $form) {
-                $formCount++;
-                $formId = $form->get('id');
-                $this->debugLog("Processing form #{$formCount} (ID: {$formId})");
-
-                // Iterate through answers directly
                 foreach ($form->getAnswers() as $answer) {
                     $field = $answer->getField();
-                    $name = $field->get('name');
-                    $id = $field->get('id');
-                    $type = $field->get('type');
-                    $key = $name ?: 'field_' . $id;
+                    $key = $field->get('name') ?: 'field_' . $field->get('id');
 
                     if (!isset($result['custom_fields'][$key])) {
                         continue;
                     }
 
                     $value = $result['custom_fields'][$key];
-                    $this->debugLog("  Field {$key}: setting value '{$value}' (type={$type})");
-
-                    // Set value based on field type
-                    if ($type === 'choices') {
-                        // For choice fields, pass the key as value_id
+                    if ($field->get('type') === 'choices') {
                         $answer->setValue(null, $value);
                     } else {
                         $answer->setValue($value);
                     }
-
-                    // Mark the answer as dirty to ensure it gets saved
-                    $rawValue = $answer->get('value');
-                    $rawValueId = $answer->get('value_id');
-                    $this->debugLog("  -> After setValue: value='{$rawValue}', value_id='{$rawValueId}'");
-
                     $changes[] = "{$key}: {$value}";
                 }
-
-                // Save this form's answers immediately
-                $saveResult = $form->saveAnswers();
-                $this->debugLog("  Form #{$formCount} saveAnswers(): " . ($saveResult ? 'OK' : 'FAILED'));
+                $form->saveAnswers();
             }
-            $this->debugLog("Processed {$formCount} forms");
-        } else {
-            $this->debugLog("No custom fields to apply");
         }
 
-        // Save ticket
         $ticket->save();
-        $this->debugLog("Ticket saved");
-
         return $changes;
     }
 

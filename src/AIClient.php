@@ -5,6 +5,9 @@
  * Handles API calls to OpenAI and Anthropic for ticket classification.
  */
 
+require_once(INCLUDE_DIR . 'class.format.php');
+require_once(INCLUDE_DIR . 'class.json.php');
+
 class AIClassifierClient {
 
     const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
@@ -210,9 +213,9 @@ class AIClassifierClient {
      * Execute HTTP request
      */
     private function request($url, $payload, $headers) {
-        $json = json_encode($payload);
-        if ($json === false) {
-            throw new Exception('Failed to encode request: ' . json_last_error_msg());
+        $json = Format::json_encode($payload);
+        if (!$json) {
+            throw new Exception('Failed to encode request payload');
         }
 
         $ch = curl_init($url);
@@ -249,9 +252,9 @@ class AIClassifierClient {
      * Decode JSON response
      */
     private function decodeJson($response, $provider) {
-        $json = json_decode($response, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception("Invalid JSON from {$provider}: " . json_last_error_msg());
+        $json = JsonDataParser::decode($response);
+        if ($json === null && $response) {
+            throw new Exception("Invalid JSON from {$provider}: " . JsonDataParser::lastError());
         }
         return $json;
     }
@@ -265,9 +268,9 @@ class AIClassifierClient {
         $response = preg_replace('/^```json?\s*/i', '', $response);
         $response = preg_replace('/\s*```$/', '', $response);
 
-        $result = json_decode($response, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception('Failed to parse AI response: ' . json_last_error_msg());
+        $result = JsonDataParser::decode($response);
+        if ($result === null) {
+            throw new Exception('Failed to parse AI response: ' . JsonDataParser::lastError());
         }
 
         // Validate topic

@@ -7,11 +7,9 @@
 
 require_once(INCLUDE_DIR . 'class.forms.php');
 require_once(INCLUDE_DIR . 'class.dynamic_forms.php');
+require_once(__DIR__ . '/ClassifierService.php');
 
 class AITicketClassifierPluginConfig extends PluginConfig {
-
-    /** @var array Supported custom field types */
-    const SUPPORTED_FIELD_TYPES = array('text', 'memo', 'choices', 'bool');
 
     /**
      * Form options
@@ -184,7 +182,7 @@ class AITicketClassifierPluginConfig extends PluginConfig {
                 $label = $field->get('label');
                 $id = $field->get('id');
 
-                if (!in_array($type, self::SUPPORTED_FIELD_TYPES) || !$id) {
+                if (!in_array($type, ClassifierService::SUPPORTED_FIELD_TYPES) || !$id) {
                     continue;
                 }
 
