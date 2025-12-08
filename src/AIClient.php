@@ -55,21 +55,21 @@ class AIClassifierClient {
      * @throws Exception On API error
      */
     public function classify($content, $topics, $priorities, $customFields = array()) {
-        $prompt = $this->buildPrompt($content, $topics, $priorities, $customFields);
+        $systemPrompt = $this->buildSystemPrompt($topics, $priorities, $customFields);
+        $userMessage = $this->buildUserMessage($content);
 
         $response = ($this->provider === 'anthropic')
-            ? $this->callAnthropic($prompt)
-            : $this->callOpenAI($prompt);
+            ? $this->callAnthropic($systemPrompt, $userMessage)
+            : $this->callOpenAI($systemPrompt, $userMessage);
 
         return $this->parseResponse($response, $topics, $priorities, $customFields);
     }
 
     /**
-     * Build classification prompt
+     * Build system prompt with classification instructions
      */
-    private function buildPrompt($content, $topics, $priorities, $customFields) {
-        $prompt = "You are a support ticket classifier. Analyze the following ticket and classify it.\n\n";
-        $prompt .= "TICKET CONTENT:\n---\n{$content}\n---\n\n";
+    private function buildSystemPrompt($topics, $priorities, $customFields) {
+        $prompt = "You are a support ticket classifier. Analyze tickets and classify them.\n\n";
 
         // Topics
         $prompt .= "AVAILABLE TOPICS (choose one topic_id):\n";
@@ -129,14 +129,21 @@ class AIClassifierClient {
     }
 
     /**
+     * Build user message with ticket content
+     */
+    private function buildUserMessage($content) {
+        return "Classify this ticket:\n\n{$content}";
+    }
+
+    /**
      * Call OpenAI API
      */
-    private function callOpenAI($prompt) {
+    private function callOpenAI($systemPrompt, $userMessage) {
         $payload = array(
             'model' => $this->model,
             'messages' => array(
-                array('role' => 'system', 'content' => 'You are a ticket classification assistant. Always respond with valid JSON only.'),
-                array('role' => 'user', 'content' => $prompt)
+                array('role' => 'system', 'content' => $systemPrompt),
+                array('role' => 'user', 'content' => $userMessage)
             ),
         );
 
@@ -173,13 +180,13 @@ class AIClassifierClient {
     /**
      * Call Anthropic API
      */
-    private function callAnthropic($prompt) {
+    private function callAnthropic($systemPrompt, $userMessage) {
         $payload = array(
             'model' => $this->model,
             'max_tokens' => 500,
-            'system' => 'You are a ticket classification assistant. Always respond with valid JSON only.',
+            'system' => $systemPrompt,
             'messages' => array(
-                array('role' => 'user', 'content' => $prompt)
+                array('role' => 'user', 'content' => $userMessage)
             ),
         );
 
