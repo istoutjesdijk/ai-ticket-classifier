@@ -169,11 +169,23 @@ class AIClassifierClient {
             throw new Exception('OpenAI response not completed: ' . ($json['status'] ?? 'unknown'));
         }
 
-        if (!isset($json['output'][0]['content'][0]['text'])) {
-            throw new Exception('Unexpected OpenAI response format');
+        // Extract text from message output
+        if (!isset($json['output']) || !is_array($json['output'])) {
+            throw new Exception('OpenAI response missing output array');
         }
 
-        return $json['output'][0]['content'][0]['text'];
+        // Find the message in output
+        foreach ($json['output'] as $item) {
+            if (isset($item['type']) && $item['type'] === 'message' && isset($item['content'])) {
+                foreach ($item['content'] as $content) {
+                    if (isset($content['type']) && $content['type'] === 'output_text' && isset($content['text'])) {
+                        return $content['text'];
+                    }
+                }
+            }
+        }
+
+        throw new Exception('No text content found in OpenAI response');
     }
 
     /**
