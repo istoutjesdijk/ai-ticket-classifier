@@ -150,6 +150,8 @@ class ClassifierService {
 
         // Apply custom fields
         if (!empty($result['custom_fields'])) {
+            $this->debugLog("Custom fields from AI: " . Format::json_encode($result['custom_fields']));
+
             // Ensure forms are saved during ticket.created signal
             foreach ($forms as $form) {
                 if (!$form->get('id')) {
@@ -168,14 +170,18 @@ class ClassifierService {
                     }
 
                     $value = $result['custom_fields'][$key];
-                    if ($field->get('type') === 'choices') {
+                    $type = $field->get('type');
+                    $this->debugLog("Setting field '{$key}' (type={$type}) to: {$value}");
+
+                    if ($type === 'choices') {
                         $answer->setValue(null, $value);
                     } else {
                         $answer->setValue($value);
                     }
                     $changes[] = "{$key}: {$value}";
                 }
-                $form->saveAnswers();
+                $saved = $form->saveAnswers();
+                $this->debugLog("saveAnswers() returned: " . ($saved ? 'true' : 'false'));
             }
         }
 
