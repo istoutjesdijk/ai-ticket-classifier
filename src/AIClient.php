@@ -165,8 +165,13 @@ class AIClassifierClient {
             throw new Exception('OpenAI API error: ' . ($json['error']['message'] ?? 'Unknown'));
         }
 
+        if ($json['status'] === 'incomplete') {
+            $reason = $json['incomplete_details']['reason'] ?? 'unknown';
+            throw new Exception("OpenAI response incomplete: {$reason}. Try increasing max_output_tokens.");
+        }
+
         if ($json['status'] !== 'completed') {
-            throw new Exception('OpenAI response not completed: ' . ($json['status'] ?? 'unknown'));
+            throw new Exception('OpenAI response status: ' . ($json['status'] ?? 'unknown'));
         }
 
         // Extract text from message output

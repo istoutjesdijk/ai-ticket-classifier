@@ -52,8 +52,6 @@ class AITicketClassifierPluginConfig extends PluginConfig {
 
         $fields['model'] = new TextboxField(array(
             'label' => __('Model'),
-            'required' => true,
-            'default' => AIConfig::DEFAULT_MODEL,
             'hint' => __('OpenAI: gpt-4o-mini, gpt-4o. Anthropic: claude-3-haiku-20240307'),
             'configuration' => array(
                 'size' => 40,
@@ -226,11 +224,6 @@ class AITicketClassifierPluginConfig extends PluginConfig {
     public function pre_save(&$config, &$errors) {
         if (empty($config['api_key'])) {
             $errors['api_key'] = __('API key is required.');
-            return false;
-        }
-
-        if (empty($config['model'])) {
-            $errors['model'] = __('Model name is required.');
             return false;
         }
 
