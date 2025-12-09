@@ -14,8 +14,8 @@ class AIConfig {
 
     // Default model settings
     const DEFAULT_PROVIDER = 'openai';
-    const DEFAULT_MODEL = 'gpt-4o-mini';
-    const DEFAULT_TIMEOUT = 30;
+    const DEFAULT_MODEL = 'gpt-5-nano';
+    const DEFAULT_TIMEOUT = 10;
     const DEFAULT_TEMPERATURE = 1.0;
     const DEFAULT_MAX_TOKENS = 500;
 

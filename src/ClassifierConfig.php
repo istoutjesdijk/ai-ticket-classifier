@@ -55,7 +55,11 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             'required' => true,
             'default' => AIConfig::DEFAULT_MODEL,
             'hint' => __('OpenAI: gpt-4o-mini, gpt-4o. Anthropic: claude-3-haiku-20240307'),
-            'configuration' => array('size' => 40, 'length' => 100),
+            'configuration' => array(
+                'size' => 40,
+                'length' => 100,
+                'placeholder' => AIConfig::DEFAULT_MODEL,
+            ),
         ));
 
         // --- Triggers ---
@@ -151,21 +155,33 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             'label' => __('Temperature'),
             'default' => AIConfig::DEFAULT_TEMPERATURE,
             'hint' => __('Randomness (0-2). Note: gpt-5 and o-series only support 1.'),
-            'configuration' => array('size' => 10, 'length' => 10),
+            'configuration' => array(
+                'size' => 10,
+                'length' => 10,
+                'placeholder' => (string) AIConfig::DEFAULT_TEMPERATURE,
+            ),
         ));
 
         $fields['timeout'] = new TextboxField(array(
             'label' => __('API Timeout (seconds)'),
             'default' => AIConfig::DEFAULT_TIMEOUT,
             'hint' => __('Maximum time to wait for AI response.'),
-            'configuration' => array('size' => 10, 'length' => 10),
+            'configuration' => array(
+                'size' => 10,
+                'length' => 10,
+                'placeholder' => (string) AIConfig::DEFAULT_TIMEOUT,
+            ),
         ));
 
         $fields['max_tokens'] = new TextboxField(array(
             'label' => __('Max Output Tokens'),
             'default' => AIConfig::DEFAULT_MAX_TOKENS,
             'hint' => __('Maximum tokens in AI response.'),
-            'configuration' => array('size' => 10, 'length' => 10),
+            'configuration' => array(
+                'size' => 10,
+                'length' => 10,
+                'placeholder' => (string) AIConfig::DEFAULT_MAX_TOKENS,
+            ),
         ));
 
         return $fields;
