@@ -19,7 +19,7 @@ class AIConfig {
     const DEFAULT_TEMPERATURE = 1.0;
     const DEFAULT_MAX_TOKENS = 1000;
     const DEFAULT_STORE_RESPONSES = true;
-    const DEFAULT_REASONING_EFFORT = 'none';
+    const DEFAULT_REASONING_EFFORT = null;
 
     // Supported field types for custom field classification
     const SUPPORTED_FIELD_TYPES = array('text', 'memo', 'choices', 'bool');
