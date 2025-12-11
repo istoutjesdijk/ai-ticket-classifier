@@ -21,16 +21,6 @@ class AIConfig {
     const DEFAULT_STORE_RESPONSES = true;
     const DEFAULT_REASONING_EFFORT = 'none';
 
-    // Reasoning effort options (for gpt-5 and o-series models)
-    const REASONING_EFFORT_OPTIONS = array(
-        'none' => 'None',
-        'minimal' => 'Minimal',
-        'low' => 'Low',
-        'medium' => 'Medium',
-        'high' => 'High',
-        'xhigh' => 'Extra High',
-    );
-
     // Supported field types for custom field classification
     const SUPPORTED_FIELD_TYPES = array('text', 'memo', 'choices', 'bool');
 

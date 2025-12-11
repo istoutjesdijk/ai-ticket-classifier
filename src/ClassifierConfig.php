@@ -190,11 +190,14 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             )
         ));
 
-        $fields['reasoning_effort'] = new ChoiceField(array(
+        $fields['reasoning_effort'] = new TextboxField(array(
             'label' => __('Reasoning Effort'),
-            'default' => AIConfig::DEFAULT_REASONING_EFFORT,
-            'choices' => AIConfig::REASONING_EFFORT_OPTIONS,
-            'hint' => __('For gpt-5 and o-series models. Higher = better but slower/more expensive.'),
+            'hint' => __('Options: none, minimal, low, medium, high, xhigh. For gpt-5 and o-series models.'),
+            'configuration' => array(
+                'size' => 10,
+                'length' => 10,
+                'placeholder' => AIConfig::DEFAULT_REASONING_EFFORT,
+            ),
         ));
 
         return $fields;

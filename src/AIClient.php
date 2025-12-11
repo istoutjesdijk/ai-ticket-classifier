@@ -53,16 +53,7 @@ class AIClassifierClient {
         $this->temperature = (float) ($temperature ?? AIConfig::DEFAULT_TEMPERATURE);
         $this->maxTokens = (int) ($maxTokens ?? AIConfig::DEFAULT_MAX_TOKENS);
         $this->storeResponses = (bool) ($storeResponses ?? AIConfig::DEFAULT_STORE_RESPONSES);
-        $effort = $reasoningEffort ?? AIConfig::DEFAULT_REASONING_EFFORT;
-        // Handle osTicket ChoiceField which may return array, JSON string, or plain string
-        if (is_array($effort)) {
-            $this->reasoningEffort = key($effort);
-        } elseif (is_string($effort) && $effort[0] === '{') {
-            $decoded = json_decode($effort, true);
-            $this->reasoningEffort = is_array($decoded) ? key($decoded) : $effort;
-        } else {
-            $this->reasoningEffort = $effort;
-        }
+        $this->reasoningEffort = $reasoningEffort ?: AIConfig::DEFAULT_REASONING_EFFORT;
     }
 
     /**
