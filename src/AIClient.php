@@ -165,7 +165,7 @@ class AIClassifierClient {
         }
 
         // Add reasoning effort for reasoning models (gpt-5, o-series)
-        if ($this->reasoningEffort && $this->reasoningEffort !== 'none') {
+        if ($this->reasoningEffort) {
             $payload['reasoning'] = array('effort' => $this->reasoningEffort);
         }
 

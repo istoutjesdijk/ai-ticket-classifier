@@ -23,10 +23,12 @@ class AIConfig {
 
     // Reasoning effort options (for gpt-5 and o-series models)
     const REASONING_EFFORT_OPTIONS = array(
-        'none' => 'Disabled',
+        'none' => 'None (no reasoning)',
+        'minimal' => 'Minimal',
         'low' => 'Low',
         'medium' => 'Medium',
         'high' => 'High',
+        'xhigh' => 'Extra High',
     );
 
     // Supported field types for custom field classification
