@@ -146,7 +146,6 @@ class AIClassifierClient {
             'instructions' => $systemPrompt,
             'input' => $userMessage,
             'max_output_tokens' => $this->maxTokens,
-            'store' => false,
         );
 
         // Add temperature for models that support it
