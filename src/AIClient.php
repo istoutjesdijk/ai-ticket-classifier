@@ -32,6 +32,9 @@ class AIClassifierClient {
     /** @var bool */
     private $storeResponses;
 
+    /** @var string|null */
+    private $reasoningEffort;
+
     /**
      * @param string $provider 'openai' or 'anthropic'
      * @param string $apiKey API key
@@ -40,8 +43,9 @@ class AIClassifierClient {
      * @param float $temperature Temperature (0-2)
      * @param int $maxTokens Maximum response tokens
      * @param bool $storeResponses Store responses in OpenAI dashboard
+     * @param string $reasoningEffort Reasoning effort level (none, low, medium, high)
      */
-    public function __construct($provider, $apiKey, $model, $timeout = null, $temperature = null, $maxTokens = null, $storeResponses = null) {
+    public function __construct($provider, $apiKey, $model, $timeout = null, $temperature = null, $maxTokens = null, $storeResponses = null, $reasoningEffort = null) {
         $this->provider = strtolower($provider);
         $this->apiKey = $apiKey;
         $this->model = $model;
@@ -49,6 +53,7 @@ class AIClassifierClient {
         $this->temperature = (float) ($temperature ?? AIConfig::DEFAULT_TEMPERATURE);
         $this->maxTokens = (int) ($maxTokens ?? AIConfig::DEFAULT_MAX_TOKENS);
         $this->storeResponses = (bool) ($storeResponses ?? AIConfig::DEFAULT_STORE_RESPONSES);
+        $this->reasoningEffort = $reasoningEffort ?? AIConfig::DEFAULT_REASONING_EFFORT;
     }
 
     /**
@@ -157,6 +162,11 @@ class AIClassifierClient {
         // Add temperature for models that support it
         if (!$this->isModelWithoutTemperature()) {
             $payload['temperature'] = $this->temperature;
+        }
+
+        // Add reasoning effort for reasoning models (gpt-5, o-series)
+        if ($this->reasoningEffort && $this->reasoningEffort !== 'none') {
+            $payload['reasoning'] = array('effort' => $this->reasoningEffort);
         }
 
         $response = $this->request(AIConfig::OPENAI_URL, $payload, array(

@@ -101,6 +101,7 @@ class ClassifierService {
         $temperature = $this->config->get('temperature') ?: null;
         $maxTokens = $this->config->get('max_tokens') ?: null;
         $storeResponses = $this->config->get('store_responses');
+        $reasoningEffort = $this->config->get('reasoning_effort');
 
         if (!$apiKey) {
             throw new Exception('API key not configured');
@@ -111,7 +112,7 @@ class ClassifierService {
         $priorities = Priority::getPriorities();
         $customFields = $this->getCustomFieldDefinitions($ticket);
 
-        $client = new AIClassifierClient($provider, $apiKey, $model, $timeout, $temperature, $maxTokens, $storeResponses);
+        $client = new AIClassifierClient($provider, $apiKey, $model, $timeout, $temperature, $maxTokens, $storeResponses, $reasoningEffort);
         return $client->classify($content, $topics, $priorities, $customFields);
     }
 

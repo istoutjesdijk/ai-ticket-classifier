@@ -19,6 +19,15 @@ class AIConfig {
     const DEFAULT_TEMPERATURE = 1.0;
     const DEFAULT_MAX_TOKENS = 1000;
     const DEFAULT_STORE_RESPONSES = true;
+    const DEFAULT_REASONING_EFFORT = 'none';
+
+    // Reasoning effort options (for gpt-5 and o-series models)
+    const REASONING_EFFORT_OPTIONS = array(
+        'none' => 'Disabled',
+        'low' => 'Low',
+        'medium' => 'Medium',
+        'high' => 'High',
+    );
 
     // Supported field types for custom field classification
     const SUPPORTED_FIELD_TYPES = array('text', 'memo', 'choices', 'bool');
