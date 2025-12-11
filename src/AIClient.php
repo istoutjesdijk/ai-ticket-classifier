@@ -29,6 +29,9 @@ class AIClassifierClient {
     /** @var int */
     private $maxTokens;
 
+    /** @var bool */
+    private $storeResponses;
+
     /**
      * @param string $provider 'openai' or 'anthropic'
      * @param string $apiKey API key
@@ -36,14 +39,16 @@ class AIClassifierClient {
      * @param int $timeout Timeout in seconds
      * @param float $temperature Temperature (0-2)
      * @param int $maxTokens Maximum response tokens
+     * @param bool $storeResponses Store responses in OpenAI dashboard
      */
-    public function __construct($provider, $apiKey, $model, $timeout = null, $temperature = null, $maxTokens = null) {
+    public function __construct($provider, $apiKey, $model, $timeout = null, $temperature = null, $maxTokens = null, $storeResponses = null) {
         $this->provider = strtolower($provider);
         $this->apiKey = $apiKey;
         $this->model = $model;
         $this->timeout = (int) ($timeout ?? AIConfig::DEFAULT_TIMEOUT);
         $this->temperature = (float) ($temperature ?? AIConfig::DEFAULT_TEMPERATURE);
         $this->maxTokens = (int) ($maxTokens ?? AIConfig::DEFAULT_MAX_TOKENS);
+        $this->storeResponses = (bool) ($storeResponses ?? AIConfig::DEFAULT_STORE_RESPONSES);
     }
 
     /**
@@ -146,6 +151,7 @@ class AIClassifierClient {
             'instructions' => $systemPrompt,
             'input' => $userMessage,
             'max_output_tokens' => $this->maxTokens,
+            'store' => $this->storeResponses,
         );
 
         // Add temperature for models that support it

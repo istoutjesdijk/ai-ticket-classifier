@@ -182,6 +182,14 @@ class AITicketClassifierPluginConfig extends PluginConfig {
             ),
         ));
 
+        $fields['store_responses'] = new BooleanField(array(
+            'label' => __('Store API Responses'),
+            'default' => AIConfig::DEFAULT_STORE_RESPONSES,
+            'configuration' => array(
+                'desc' => __('Store responses in OpenAI dashboard for debugging.')
+            )
+        ));
+
         return $fields;
     }
 
