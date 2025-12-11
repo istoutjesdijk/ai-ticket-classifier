@@ -53,7 +53,8 @@ class AIClassifierClient {
         $this->temperature = (float) ($temperature ?? AIConfig::DEFAULT_TEMPERATURE);
         $this->maxTokens = (int) ($maxTokens ?? AIConfig::DEFAULT_MAX_TOKENS);
         $this->storeResponses = (bool) ($storeResponses ?? AIConfig::DEFAULT_STORE_RESPONSES);
-        $this->reasoningEffort = $reasoningEffort ?? AIConfig::DEFAULT_REASONING_EFFORT;
+        $effort = $reasoningEffort ?? AIConfig::DEFAULT_REASONING_EFFORT;
+        $this->reasoningEffort = is_array($effort) ? key($effort) : $effort;
     }
 
     /**
