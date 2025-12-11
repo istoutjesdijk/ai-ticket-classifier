@@ -102,6 +102,9 @@ class ClassifierService {
         $maxTokens = $this->config->get('max_tokens') ?: null;
         $storeResponses = $this->config->get('store_responses');
         $reasoningEffort = $this->config->get('reasoning_effort');
+        if (is_array($reasoningEffort)) {
+            $reasoningEffort = key($reasoningEffort);
+        }
 
         if (!$apiKey) {
             throw new Exception('API key not configured');

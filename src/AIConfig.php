@@ -19,16 +19,15 @@ class AIConfig {
     const DEFAULT_TEMPERATURE = 1.0;
     const DEFAULT_MAX_TOKENS = 1000;
     const DEFAULT_STORE_RESPONSES = true;
-    const DEFAULT_REASONING_EFFORT = 'none';
+    const DEFAULT_REASONING_EFFORT = 'minimal';
 
     // Reasoning effort options (for gpt-5 and o-series models)
+    // Note: 'none' only works for gpt-5.1+, 'xhigh' only for gpt-5.1-codex-max+
     const REASONING_EFFORT_OPTIONS = array(
-        'none' => 'None (no reasoning)',
         'minimal' => 'Minimal',
         'low' => 'Low',
         'medium' => 'Medium',
         'high' => 'High',
-        'xhigh' => 'Extra High',
     );
 
     // Supported field types for custom field classification
